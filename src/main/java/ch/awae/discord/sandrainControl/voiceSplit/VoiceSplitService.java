@@ -1,21 +1,17 @@
 package ch.awae.discord.sandrainControl.voiceSplit;
 
-import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
-import discord4j.core.object.VoiceState;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
-import discord4j.core.object.entity.channel.GuildChannel;
+import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.object.entity.channel.VoiceChannel;
-import discord4j.core.spec.VoiceChannelCreateSpec;
+import discord4j.core.object.reaction.ReactionEmoji;
+import discord4j.discordjson.json.ReactionData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 import java.util.ArrayList;
@@ -45,18 +41,14 @@ public class VoiceSplitService {
 
     private boolean verifyMerged(Message message) {
         if (split) {
-            message.getChannel()
-                    .flatMap(c -> c.createMessage("unsupported: channels split. please merge."))
-                    .subscribe();
+            message.getRestMessage().createReaction("\u274C").subscribe();
         }
         return !split;
     }
 
     private boolean verifySplit(Message message) {
         if (!split) {
-            message.getChannel()
-                    .flatMap(c -> c.createMessage("unsupported: channels merged."))
-                    .subscribe();
+            message.getRestMessage().createReaction("\u274C").subscribe();
         }
         return split;
     }
@@ -82,6 +74,7 @@ public class VoiceSplitService {
                     .forEach(t -> moveUser(t.getT1(), lobby, t.getT2()));
 
             this.voiceChannels = channels;
+            message.getRestMessage().createReaction("\u2705").subscribe();
         }
     }
 
@@ -118,6 +111,7 @@ public class VoiceSplitService {
                         .count();
                 voiceChannel.delete().subscribe();
             }
+            message.getRestMessage().createReaction("\u2705").subscribe();
         }
     }
 
@@ -143,12 +137,25 @@ public class VoiceSplitService {
         if (verifyMerged(message)) {
             List<User> users = message.getUserMentions().toStream().collect(Collectors.toList());
             repo.createGroup(users);
+            message.getRestMessage().createReaction("\u2705").subscribe();
         }
     }
 
     public synchronized void reset(Message message) {
-        if (verifyMerged(message))
+        if (verifyMerged(message)) {
             repo.clear();
+            message.getRestMessage().createReaction("\u2705").subscribe();
+        }
     }
 
+    public void clear(Message message) {
+        message.getRestMessage().createReaction("\uD83E\uDDF9").subscribe();
+        MessageChannel channel = message.getChannel().block();
+        channel.getMessagesBefore(message.getId()).toStream()
+                .parallel()
+                .filter(m -> !m.isPinned())
+                .map(m -> m.delete().block())
+                .count();
+        message.delete().block();
+    }
 }

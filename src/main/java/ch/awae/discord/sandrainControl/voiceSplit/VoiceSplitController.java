@@ -38,15 +38,27 @@ public class VoiceSplitController implements EventListener<MessageCreateEvent> {
         String command = message.getContent().split(" ", 2)[0];
 
         switch (command) {
-            case "!reset": service.reset(message);  break;
-            case "!group": service.group(message); break;
-            case "!split": service.split(message); break;
-            case "!merge": service.merge(message); break;
-            case "!list": service.show(message); break;
-            default: {
-                return message.getChannel().flatMap(c -> c.createMessage("unknown command: " + command))
-                        .flatMap(m -> Mono.empty());
-            }
+            case "!reset":
+                service.reset(message);
+                break;
+            case "!group":
+                service.group(message);
+                break;
+            case "!split":
+                service.split(message);
+                break;
+            case "!merge":
+                service.merge(message);
+                break;
+            case "!list":
+                service.show(message);
+                break;
+            case "!clear":
+                service.clear(message);
+                break;
+            default:
+                message.getRestMessage().createReaction("\u26D4").subscribe();
+                break;
         }
 
         return Mono.empty();
