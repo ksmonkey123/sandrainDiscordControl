@@ -1,0 +1,8 @@
+discord:
+  token: %server_token%
+  server: %server_id%
+
+voice-split:
+  category: %channel category where the group channels should be created%
+  control: %channel id of the controlling text channel%
+  voice-lobby: %channel id of the voice lobby where members are taken from and put back to%

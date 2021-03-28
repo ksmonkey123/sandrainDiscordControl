@@ -1,0 +1,5 @@
+/.idea/
+/target/
+# application yml contains discord api token and channel config. Do not include in repository!
+/src/main/resources/application.yml
+/*.iml
