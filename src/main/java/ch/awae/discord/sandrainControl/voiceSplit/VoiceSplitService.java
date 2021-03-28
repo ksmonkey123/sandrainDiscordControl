@@ -125,7 +125,7 @@ public class VoiceSplitService {
             for (List<User> group : groups) {
                 response.append(" - ");
                 for (User user : group) {
-                    response.append(user.getMention()).append(" ");
+                    response.append(user.getUsername()).append(" ");
                 }
                 response.append("\n");
             }
