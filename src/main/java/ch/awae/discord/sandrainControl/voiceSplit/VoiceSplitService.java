@@ -5,12 +5,11 @@ import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
-import discord4j.core.object.entity.channel.MessageChannel;
+import discord4j.core.object.entity.channel.TextChannel;
 import discord4j.core.object.entity.channel.VoiceChannel;
-import discord4j.core.object.reaction.ReactionEmoji;
-import discord4j.discordjson.json.ReactionData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.util.function.Tuples;
 
@@ -150,12 +149,21 @@ public class VoiceSplitService {
 
     public void clear(Message message) {
         message.getRestMessage().createReaction("\uD83E\uDDF9").subscribe();
-        MessageChannel channel = message.getChannel().block();
-        channel.getMessagesBefore(message.getId()).toStream()
-                .parallel()
+        TextChannel channel = (TextChannel) message.getChannel().block();
+        channel.getMessagesBefore(message.getId())
                 .filter(m -> !m.isPinned())
-                .map(m -> m.delete().block())
-                .count();
+                .transform(channel::bulkDeleteMessages)
+                .blockLast();
         message.delete().block();
     }
+
+    @Scheduled(cron = "0 0 4 * * *")
+    public synchronized void regularCleanup() {
+        client.getChannelById(config.getControlChannel())
+                .map(channel -> (TextChannel) channel)
+                .flatMap(channel -> channel.getLastMessage())
+                .doOnSuccess(this::clear)
+                .subscribe();
+    }
+
 }
